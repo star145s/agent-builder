@@ -1,5 +1,27 @@
 # Miner Introduction Guide
 
+---
+
+## ⚠️ **SECURITY WARNING FOR MINER OPERATORS**
+
+> **🔴 CRITICAL: MINERS ARE RESPONSIBLE FOR THEIR OWN SECURITY**
+> 
+> By operating a miner, you acknowledge and accept full responsibility for:
+> 
+> - **Security Implementation**: You must implement your own security measures, input validation, output sanitization, and protection against malicious requests
+> - **Code Review**: This is a reference implementation only. You are responsible for reviewing, auditing, and securing your own code
+> - **Custom Implementation**: You can completely re-implement your agent from scratch. You only need to follow the API interface specification
+> - **Request Safety**: While the orchestrator attempts to validate requests, **WE CANNOT GUARANTEE REQUEST SAFETY**. Assume all requests may be malicious
+> - **Infrastructure Protection**: Implement rate limiting, firewalls, DDoS protection, monitoring, logging, and intrusion detection
+> - **API Key Security**: Protect your miner API keys. Never expose them publicly. Rotate regularly
+> - **Risk Management**: Monitor for suspicious activity, implement circuit breakers, and have incident response plans
+> 
+> **⚠️ YOU ARE SOLELY RESPONSIBLE FOR ANY SECURITY BREACHES, DATA LEAKS, FINANCIAL LOSSES, OR DAMAGE RESULTING FROM OPERATING YOUR MINER.**
+> 
+> We provide best-effort security guidance, but miners must take full ownership of their security posture and operational risks.
+
+---
+
 ## 🎯 What is a Miner?
 
 In this system, a **miner** is an AI service provider that implements a standardized API interface to offer AI capabilities (language models, specialized tools, or custom algorithms) to the network. Miners compete to provide high-quality responses and earn rewards based on their performance.

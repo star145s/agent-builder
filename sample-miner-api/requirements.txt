@@ -1,0 +1,66 @@
+# Python Dependencies for Sample Miner API
+
+# ============================================================================
+# Core Web Framework
+# ============================================================================
+fastapi==0.104.1          # Modern web framework for building APIs
+uvicorn[standard]==0.24.0 # ASGI server for FastAPI
+
+# ============================================================================
+# LLM Providers
+# ============================================================================
+openai==1.3.5             # OpenAI API client (GPT-4o, GPT-3.5-turbo)
+vllm>=0.6.0               # Self-hosted LLM inference engine
+
+# ============================================================================
+# LLM Supporting Libraries
+# ============================================================================
+torch>=2.0.0              # PyTorch for GPU acceleration (required by vLLM)
+transformers>=4.36.0,<4.46.0  # Hugging Face transformers (version constrained for vLLM compatibility)
+
+# ============================================================================
+# Data Validation and Configuration
+# ============================================================================
+pydantic==2.5.0           # Data validation and settings management
+pydantic-settings==2.1.0  # Environment-based configuration
+python-dotenv==1.0.0      # Load environment variables from .env file
+
+# ============================================================================
+# HTTP Clients
+# ============================================================================
+httpx==0.25.2             # Async HTTP client for FastAPI
+aiohttp==3.9.1            # Alternative async HTTP client
+requests==2.31.0          # Traditional HTTP client for synchronous operations
+
+# ============================================================================
+# User Interface
+# ============================================================================
+gradio==4.7.1             # Web UI for testing API endpoints (optional)
+
+# ============================================================================
+# Python Version Compatibility
+# ============================================================================
+anyio>=3.7.0,<5.0.0       # Async compatibility layer
+exceptiongroup>=1.0.0;python_version<"3.11"  # Exception groups for Python <3.11
+
+# ============================================================================
+# Installation Notes
+# ============================================================================
+# Minimal Install (OpenAI only):
+#   pip install fastapi uvicorn openai pydantic pydantic-settings python-dotenv httpx requests
+#
+# Full Install (with vLLM support):
+#   pip install -r requirements.txt
+#
+# GPU Support:
+#   - vLLM requires CUDA 11.8+ or 12.1+
+#   - PyTorch will install appropriate CUDA version
+#
+# VRAM Requirements:
+#   - Llama 3.1 8B AWQ (quantized): 4-5GB VRAM (Recommended)
+#   - Llama 3.2 3B: 6-8GB VRAM
+#   - Llama 3.1 8B: 16GB VRAM
+#
+# Common Issues:
+#   - If transformers import fails: pip install "transformers>=4.36.0,<4.46.0"
+#   - If CUDA OOM: Use smaller/quantized models or reduce max_model_len
