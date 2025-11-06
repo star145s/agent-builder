@@ -4,7 +4,7 @@ import argparse
 import bittensor as bt
 
 
-API_URL = "https://star145s-agent-score.hf.space/weights/array"
+API_URL = "https://star145s-agent-score-backup.hf.space/weights/array"
 
 
 def fetch_weights():
@@ -57,12 +57,15 @@ def validator_loop(interval_secs: float, netuid: int, wallet: bt.Wallet):
     subtensor = bt.Subtensor(network="finney")
     try:
         while True:
-            weights, num_uids = fetch_weights()
-            if weights:
-                print(f"[{time.strftime('%X')}] Fetched {len(weights)} weights (sum={sum(weights):.6f})")
-                set_weights_onchain(netuid, wallet, weights)
-            else:
-                print(f"[{time.strftime('%X')}] Skipping weight set due to fetch error.")
+            try:
+                weights, num_uids = fetch_weights()
+                if weights:
+                    print(f"[{time.strftime('%X')}] Fetched {len(weights)} weights (sum={sum(weights):.6f})")
+                    set_weights_onchain(netuid, wallet, weights)
+                else:
+                    print(f"[{time.strftime('%X')}] Skipping weight set due to fetch error.")
+            except Exception as e:
+                print(f"[{time.strftime('%X')}] Error in validator loop: {e}")
             subtensor.wait_for_block()  # wait for next block to avoid rate limit
             time.sleep(interval_secs)
     except KeyboardInterrupt:
