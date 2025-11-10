@@ -5,6 +5,12 @@ venv/
 ENV/
 env/
 
+# Database files
+data/
+*.db
+*.db-shm
+*.db-wal
+
 # Sensitive files - Bittensor & Credentials
 **/coldkey*
 **/hotkey*

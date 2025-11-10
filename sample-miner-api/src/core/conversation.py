@@ -1,161 +1,161 @@
-"""Conversation context management for the miner."""
+"""Conversation context management using SQLite database.
+
+This module uses SQLite for persistent storage (file-based, zero configuration).
+Database file location: ./data/miner_api.db (configured in .env)
+"""
 
 import logging
 from typing import Dict, List, Optional
 from datetime import datetime
-from collections import deque
-
-from src.core.playbook import PlaybookManager
+from src.repositories.conversation_repository import ConversationRepository
 
 logger = logging.getLogger(__name__)
-
-
-class ConversationMessage:
-    """Represents a single message in a conversation."""
-    
-    def __init__(self, role: str, content: str, timestamp: Optional[datetime] = None):
-        self.role = role  # 'user' or 'assistant'
-        self.content = content
-        self.timestamp = timestamp or datetime.utcnow()
-    
-    def to_dict(self):
-        return {
-            "role": self.role,
-            "content": self.content
-        }
 
 
 class ConversationContext:
     """
     Manages conversation context for a single conversation ID.
+    Now backed by SQLite database via SQLModel ORM.
     
-    NOTE: This class no longer stores message history. All conversation insights
-    are extracted and stored in the playbook. The messages deque is kept for
-    backward compatibility but should not be used for LLM context.
+    Stores up to 10 recent messages and automatically cleans up old messages.
+    Messages older than 7 days are automatically deleted.
     """
     
-    MAX_MESSAGES = 0  # Disabled - we don't store conversation history anymore
+    MAX_MESSAGES = 10  # Store up to 10 recent messages
+    MAX_MESSAGE_AGE_DAYS = 7  # Auto-delete messages older than 7 days
     
     def __init__(self, cid: str):
         self.cid = cid
-        self.messages = deque(maxlen=1)  # Keep only last message for debugging
-        self.playbook = PlaybookManager()  # Playbook is the source of truth
-        self.created_at = datetime.utcnow()
-        self.last_updated = datetime.utcnow()
+        self.repository = ConversationRepository()
+        # Ensure conversation exists in database
+        self.repository.get_or_create_conversation(cid)
     
-    def add_message(self, role: str, content: str):
+    def add_message(self, role: str, content: str, extra_data: Optional[dict] = None):
         """
-        DEPRECATED: Messages are no longer stored. Use playbook instead.
-        This method is kept for backward compatibility only.
+        Add a message to conversation history. Stores up to 10 recent messages.
+        Automatically cleans up messages older than 7 days.
         """
         # Skip if content is None or empty
         if not content or not content.strip():
             logger.warning(f"Skipping empty message for conversation {self.cid}")
             return
         
-        # Store only for debugging purposes
-        message = ConversationMessage(role, content)
-        self.messages.append(message)
-        self.last_updated = datetime.utcnow()
-        logger.debug(f"[DEBUG ONLY] Added {role} message to conversation {self.cid}")
+        # Add message to database
+        self.repository.add_message(
+            cid=self.cid,
+            role=role,
+            content=content,
+            extra_data=extra_data
+        )
     
-    def add_user_message(self, content: str):
-        """DEPRECATED: Use playbook updates instead."""
-        self.add_message("user", content)
+    def add_user_message(self, content: str, extra_data: Optional[dict] = None):
+        """Add a user message to conversation history."""
+        self.add_message("user", content, extra_data)
     
-    def add_assistant_message(self, content: str):
-        """DEPRECATED: Use playbook updates instead."""
-        self.add_message("assistant", content)
+    def add_assistant_message(self, content: str, extra_data: Optional[dict] = None):
+        """Add an assistant message to conversation history."""
+        self.add_message("assistant", content, extra_data)
     
     def get_messages(self) -> List[Dict]:
         """
-        DEPRECATED: Returns empty list. Use get_playbook_context() instead.
-        All conversation context is now stored in the playbook.
+        Get conversation history as a list of message dictionaries.
+        Returns up to 10 most recent messages, excluding messages older than 7 days.
         """
-        logger.warning("get_messages() is deprecated. Use get_playbook_context() instead.")
-        return []  # Return empty - playbook is the source of truth
-    
-    def get_playbook_context(self) -> str:
-        """Get playbook preferences formatted for LLM context."""
-        return self.playbook.to_context_string()
-    
-    def add_human_feedback(self, feedback: str):
-        """
-        DEPRECATED: Use apply_playbook_actions instead.
-        This method is kept for backward compatibility.
-        """
-        logger.warning("add_human_feedback is deprecated. Use apply_playbook_actions instead.")
-        # Simple fallback: insert as a new node
-        self.playbook.insert(content=feedback, category="feedback")
-        self.last_updated = datetime.utcnow()
+        messages = self.repository.get_recent_messages(self.cid, count=self.MAX_MESSAGES)
+        return messages
     
     def get_context_summary(self) -> str:
         """
-        Get a summary of the conversation context.
-        Now returns only playbook preferences since conversation history is not stored.
+        Get a summary of the conversation context from recent messages.
         """
-        # Return only playbook preferences
-        playbook_str = self.playbook.to_context_string()
-        if playbook_str:
-            return playbook_str
-        else:
-            return "No user preferences stored yet."
+        messages = self.get_messages()
+        if not messages:
+            return "No conversation context yet."
+        
+        history_text = "Recent conversation:\n"
+        for msg in messages[-5:]:  # Show last 5 messages
+            role = msg['role'].capitalize()
+            content = msg['content'][:100] + "..." if len(msg['content']) > 100 else msg['content']
+            history_text += f"{role}: {content}\n"
+        
+        return history_text
+    
+    def get_context(self) -> str:
+        """
+        Get full conversation context as formatted string for LLM.
+        Alias for get_context_summary.
+        """
+        return self.get_context_summary()
+    
+    def get_recent_messages(self, count: int = 5) -> List[Dict]:
+        """
+        Get the most recent N messages.
+        
+        Args:
+            count: Number of recent messages to return
+        
+        Returns:
+            List of message dictionaries
+        """
+        return self.repository.get_recent_messages(self.cid, count=count)
     
     def clear(self):
-        """Clear debug messages. Playbook is preserved."""
-        self.messages.clear()
-        self.last_updated = datetime.utcnow()
-        logger.info(f"Cleared debug messages for conversation {self.cid}. Playbook preserved.")
+        """Clear conversation messages by deleting the conversation."""
+        self.repository.delete_conversation(self.cid)
+        logger.info(f"Cleared messages for conversation {self.cid}.")
+    
+    @property
+    def created_at(self) -> Optional[datetime]:
+        """Get conversation creation time."""
+        conversation = self.repository.get_conversation(self.cid)
+        return conversation.created_at if conversation else None
+    
+    @property
+    def last_updated(self) -> Optional[datetime]:
+        """Get last update time."""
+        conversation = self.repository.get_conversation(self.cid)
+        return conversation.last_updated if conversation else None
 
 
 class ConversationManager:
-    """Manages all conversation contexts."""
-    
-    MAX_CONVERSATIONS = 100  # Maximum number of conversations to keep in memory
+    """
+    Manages all conversation contexts.
+    Now uses SQLite database for persistent storage.
+    """
     
     def __init__(self):
-        self.conversations: Dict[str, ConversationContext] = {}
+        self.repository = ConversationRepository()
     
     def get_or_create(self, cid: str) -> ConversationContext:
         """Get an existing conversation or create a new one."""
-        if cid not in self.conversations:
-            # If we're at max capacity, remove the oldest conversation
-            if len(self.conversations) >= self.MAX_CONVERSATIONS:
-                oldest_cid = min(
-                    self.conversations.keys(),
-                    key=lambda k: self.conversations[k].last_updated
-                )
-                logger.info(f"Removing old conversation {oldest_cid} to make room")
-                del self.conversations[oldest_cid]
-            
-            self.conversations[cid] = ConversationContext(cid)
-            logger.info(f"Created new conversation context for {cid}")
-        
-        return self.conversations[cid]
+        return ConversationContext(cid)
     
     def get(self, cid: str) -> Optional[ConversationContext]:
         """Get an existing conversation context."""
-        return self.conversations.get(cid)
+        conversation = self.repository.get_conversation(cid)
+        if conversation:
+            return ConversationContext(cid)
+        return None
     
     def delete(self, cid: str):
         """Delete a conversation context."""
-        if cid in self.conversations:
-            del self.conversations[cid]
-            logger.info(f"Deleted conversation context for {cid}")
+        self.repository.delete_conversation(cid)
     
     def get_stats(self) -> Dict:
         """Get statistics about conversations."""
+        conversations = self.repository.get_all_conversations(limit=100)
+        
         return {
-            "total_conversations": len(self.conversations),
-            "max_conversations": self.MAX_CONVERSATIONS,
+            "total_conversations": len(conversations),
+            "max_conversations": 100,  # Database limit for stats display
             "conversations": [
                 {
-                    "cid": cid,
-                    "messages": len(ctx.messages),
-                    "created_at": ctx.created_at.isoformat(),
-                    "last_updated": ctx.last_updated.isoformat()
+                    "cid": conv.cid,
+                    "messages": conv.message_count,
+                    "created_at": conv.created_at.isoformat(),
+                    "last_updated": conv.last_updated.isoformat()
                 }
-                for cid, ctx in self.conversations.items()
+                for conv in conversations
             ]
         }
 

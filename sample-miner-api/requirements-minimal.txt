@@ -1,0 +1,28 @@
+# Minimal Requirements (OpenAI only, no vLLM)
+# Use this if you only need OpenAI API support without vLLM
+
+# Core Web Framework
+fastapi>=0.104.1
+uvicorn[standard]==0.24.0
+slowapi==0.1.9
+
+# OpenAI Provider
+openai>=1.45.0
+
+# Database (SQLite built into Python, just need ORM)
+sqlmodel>=0.0.14
+
+# Data Validation
+pydantic>=2.8.0
+pydantic-settings>=2.1.0
+python-dotenv==1.0.0
+
+# HTTP Clients
+httpx>=0.25.2
+requests>=2.31.0
+
+# Optional: Web UI
+gradio>=4.7.1
+
+# Installation:
+# pip install -r requirements-minimal.txt

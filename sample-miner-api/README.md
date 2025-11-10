@@ -1,6 +1,6 @@
 # Sample Miner API
 
-A reference implementation demonstrating how to build a miner that follows the required API interface. Miners can implement any agent architecture they want - this template shows one simple approach.
+A reference implementation demonstrating how to build a miner that follows the required API interface. Miners can implement any agent architecture they want - this template shows one simple approach using conversation history and playbook systems.
 
 ---
 
@@ -21,57 +21,82 @@ A reference implementation demonstrating how to build a miner that follows the r
 > **⚠️ YOU ARE SOLELY RESPONSIBLE FOR ANY SECURITY BREACHES, DATA LEAKS, OR DAMAGE RESULTING FROM RUNNING YOUR MINER.**
 > 
 > We do our best to maintain security, but miners must take ownership of their security posture and risk management.
-> 
-> 📖 **Read the full [SECURITY.md](SECURITY.md) guide for detailed security best practices and implementation guidelines.**
 
 ---
 
-## 🎯 LLM Backend Options
+## ✨ Features
 
-This template supports **OpenAI API** (cloud) or **vLLM** (self-hosted):
-- **OpenAI**: Quick setup, no GPU needed
-- **vLLM**: Self-hosted, privacy-focused, requires GPU 
+- 🎯 **Unified API Interface** - ComponentInput/ComponentOutput format across all endpoints
+- 💬 **Conversation History** - Automatic conversation tracking with smart context management
+- 📚 **Playbook System** - Stores user preferences, insights, and context
+- 🔄 **Multiple LLM Backends** - OpenAI (cloud) or vLLM (self-hosted)
+- 🛡️ **Built-in Security** - API key authentication, rate limiting, input validation
+- 🗄️ **SQLite Database** - Lightweight conversation and playbook storage
+- 🧪 **Gradio Test UI** - Interactive web interface for testing all endpoints
 
 ---
 
 ## 🚀 Quick Start
 
-### Option 1: OpenAI 
+### Prerequisites
+
+- **Python 3.10+** (Python 3.11+ recommended)
+- **OpenAI API key** (for OpenAI provider) OR **GPU with 4GB+ VRAM** (for vLLM)
+
+### Installation
+
+#### Option 1: OpenAI (Recommended - No GPU Required)
 
 ```bash
-# 1. Clone and navigate
+# 1. Clone repository
 git clone <repository-url>
 cd sample-miner-api
 
-# 2. Configure environment
-cp .env.example .env
-# Edit .env: Set LLM_PROVIDER=openai and add your OPENAI_API_KEY
+# 2. Install dependencies
+pip install -r requirements-minimal.txt
 
-# 3. Install and run
-pip install -r requirements.txt
+# 3. Configure environment
+cp .env.example .env
+
+# 4. Edit .env and set:
+#    - API_KEY=your-secure-random-api-key-here
+#    - LLM_PROVIDER=openai
+#    - OPENAI_API_KEY=sk-your-openai-api-key-here
+#    - OPENAI_MODEL=gpt-4o-mini  (or gpt-4o for better quality)
+
+# 5. Run the API server
 python run.py
 ```
 
-### Option 2: vLLM (Self-Hosted)
+Your API will be available at `http://localhost:8001`
+
+#### Option 2: vLLM (Self-Hosted - Requires GPU)
 
 ```bash
-# 1. Clone and navigate
+# 1. Clone repository
 git clone <repository-url>
 cd sample-miner-api
 
 # 2. Install dependencies (includes vLLM)
 pip install -r requirements.txt
 
-# 3. Deploy vLLM model
-python quick_vllm.py  # Deploys Llama 3.1 8B AWQ (quantized)
+# 3. Deploy vLLM model (in separate terminal)
+python quick_vllm.py  # Deploys Llama 3.1 8B AWQ (quantized, ~5GB VRAM)
 
-# 4. In a new terminal, configure miner
+# 4. Configure environment
 cp .env.example .env
-# Edit .env: Set LLM_PROVIDER=vllm
 
-# 5. Run the miner API
+# 5. Edit .env and set:
+#    - API_KEY=your-secure-random-api-key-here
+#    - LLM_PROVIDER=vllm
+#    - VLLM_BASE_URL=http://localhost:8000/v1
+#    - VLLM_MODEL=hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4
+
+# 6. Run the API server (in new terminal)
 python run.py
 ```
+
+Your API will be available at `http://localhost:8001`
 
 ---
 
@@ -79,113 +104,232 @@ python run.py
 
 All endpoints require `X-API-Key` header for authentication.
 
-**Core Endpoints:**
-- `POST /complete` - Process tasks with playbook context
-- `POST /feedback` - Analyze outputs and provide feedback
-- `POST /refine` - Improve outputs based on feedback
-- `POST /human_feedback` - Store user preferences
+### Core Endpoints
 
-**Utility Endpoints:**
-- `GET /health` - Health check
-- `GET /capabilities` - Get miner capabilities
-- `GET /docs` - Interactive API documentation
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/complete` | POST | Generate completion with conversation context |
+| `/refine` | POST | Refine/improve outputs based on feedback |
+| `/feedback` | POST | Analyze outputs and provide structured feedback |
+| `/human_feedback` | POST | Process user feedback and update playbook |
+| `/summary` | POST | Generate summary of previous outputs |
+| `/aggregate` | POST | Perform majority voting on multiple outputs |
+| `/internet_search` | POST | Search the internet (template endpoint) |
+
+### System Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check (no auth required) |
+| `/capabilities` | GET | Get miner capabilities and metadata |
+| `/docs` | GET | Interactive API documentation (Swagger UI) |
+
+### Conversation Management
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/conversations` | GET | List all conversations |
+| `/conversations/{cid}` | GET | Get conversation history |
+| `/conversations/{cid}` | DELETE | Delete conversation |
+
+### Playbook Management
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/playbook/{cid}` | GET | Get playbook entries for conversation |
+| `/playbook/{cid}/context` | GET | Get formatted playbook context for LLM |
 
 ---
 
-## 🧪 Testing
+## 🧪 Testing Your Miner
 
-### Option 1: Web UI (Recommended)
+### Option 1: Gradio Web UI (Recommended)
 
-Launch the Gradio test interface:
+Launch the interactive test interface:
 
 ```bash
-python gradio_test_ui.py
+cd sample-miner-api
+python examples/gradio_test_ui.py
 ```
 
-Then open http://localhost:7860 in your browser. The UI lets you test:
-- `/complete` endpoint with conversation history
-- `/feedback` endpoint for output analysis
-- `/refine` endpoint for improving outputs
-- System endpoints (`/health`, `/capabilities`)
+Then open **http://localhost:7860** in your browser.
 
-### Option 2: Command Line (cURL)
+**Features:**
+- ✅ Test all core endpoints (`/complete`, `/feedback`, `/refine`, `/human_feedback`, `/summary`, `/aggregate`, `/internet_search`)
+- ✅ View conversation history
+- ✅ Inspect playbook entries
+- ✅ Test system endpoints (`/health`, `/capabilities`)
+- ✅ Real-time response viewing with execution time
+- ✅ Built-in conversation ID management
+
+**Tabs:**
+1. **Complete** - Test basic completion with conversation history
+2. **Feedback** - Analyze output quality
+3. **Refine** - Improve outputs based on feedback
+4. **Human Feedback** - Submit user preferences
+5. **Summary** - Generate summaries
+6. **Aggregate** - Test voting mechanism
+7. **Internet Search** - Test search endpoint
+8. **Conversation** - View conversation history
+9. **Playbook** - Inspect playbook entries
+10. **System** - Check health and capabilities
+
+### Option 2: cURL (Command Line)
 
 ```bash
+# Test health endpoint (no auth required)
+curl http://localhost:8001/health
+
+# Test complete endpoint
 curl -X POST http://localhost:8001/complete \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: your-secure-miner-key" \
+  -H "X-API-Key: your-secure-api-key" \
   -d '{
     "cid": "test-123",
-    "task": "What is machine learning?",
-    "input": "Explain in simple terms"
+    "task": "Explain quantum computing",
+    "input": [
+      {
+        "user_query": "What is quantum computing in simple terms?"
+      }
+    ],
+    "use_conversation_history": true,
+    "use_playbook": true
   }'
+
+# Test capabilities endpoint
+curl http://localhost:8001/capabilities \
+  -H "X-API-Key: your-secure-api-key"
 ```
 
----
+### Option 3: Python Script
 
-### 🔧 Playbook Updates
+```python
+import requests
 
-To support smaller quantized models that struggle with complex JSON generation:
-- **`/complete`**, **`/feedback`**, **`/refine`**: No automatic playbook updates (simple text responses only)
-- **`/human_feedback`**: Only endpoint that updates playbook (uses simpler, more reliable prompts)
+API_URL = "http://localhost:8001"
+API_KEY = "your-secure-api-key"
 
-This ensures the miner works reliably with 3B-8B quantized models.
+# Test complete endpoint
+response = requests.post(
+    f"{API_URL}/complete",
+    headers={
+        "Content-Type": "application/json",
+        "X-API-Key": API_KEY
+    },
+    json={
+        "cid": "python-test-001",
+        "task": "Write a haiku about AI",
+        "input": [
+            {
+                "user_query": "Write a beautiful haiku about artificial intelligence"
+            }
+        ],
+        "use_conversation_history": True,
+        "use_playbook": True
+    }
+)
+
+print(f"Status: {response.status_code}")
+print(f"Response: {response.json()}")
+```
 
 ---
 
 ## 🔧 Configuration
 
-Edit `.env` to configure the miner:
+### Environment Variables
+
+Edit `.env` file to configure your miner. Key settings:
 
 ```env
+# Authentication
+API_KEY=your-secure-random-api-key-here  # REQUIRED! Generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"
+
+# Server
+PORT=8001
+HOST=0.0.0.0
+
 # LLM Provider
-LLM_PROVIDER=openai  # or "vllm"
+LLM_PROVIDER=openai  # Options: "openai" or "vllm"
 
-# OpenAI Settings (if using OpenAI)
-OPENAI_API_KEY=sk-your-key-here
-MODEL_NAME=gpt-4o
+# OpenAI Configuration (if LLM_PROVIDER=openai)
+OPENAI_API_KEY=sk-your-openai-api-key-here
+OPENAI_MODEL=gpt-4o-mini  # Options: gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-3.5-turbo
 
-# vLLM Settings (if using vLLM)
-VLLM_API_BASE=http://localhost:8000/v1
-MODEL_NAME=hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4
+# vLLM Configuration (if LLM_PROVIDER=vllm)
+VLLM_BASE_URL=http://localhost:8000/v1
+VLLM_MODEL=hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4
 
-# Miner Settings
-MINER_API_KEY=your-secure-miner-key
-API_PORT=8001
-MAX_TOKENS=4000
-TEMPERATURE=0.7
+# Conversation History
+MAX_CONVERSATION_MESSAGES=10  # Store up to 10 messages
+SMART_HISTORY_COUNT=5         # Send last 5 to LLM (saves tokens)
+
+# Database
+DATABASE_URL=sqlite:///./data/miner_api.db
 ```
 
-**Switching providers:** Just change `LLM_PROVIDER` and restart the API.
+See `.env.example` for complete configuration options.
+
+### Switching LLM Providers
+
+Just change `LLM_PROVIDER` in `.env` and restart:
+
+```bash
+# For OpenAI
+LLM_PROVIDER=openai
+OPENAI_API_KEY=sk-your-key
+OPENAI_MODEL=gpt-4o-mini
+
+# For vLLM
+LLM_PROVIDER=vllm
+VLLM_BASE_URL=http://localhost:8000/v1
+VLLM_MODEL=hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4
+```
+
+Then restart the server:
+```bash
+python run.py
+```
 
 ---
 
-## � Registering Your Miner
+## 🔐 Registering Your Miner
 
-Once your miner API is running and tested, register it with the orchestration system using the **encrypt.py** tool to securely sign your API credentials.
+Once your miner is running and tested, register it with the orchestration system.
 
-Registration Link: https://huggingface.co/spaces/star145s/miner-registration
-### Step 1: Prepare Your API Information
+### Registration Portal
 
-Make sure your miner API is running and accessible:
-- **API URL**: The publicly accessible URL of your miner (e.g., `https://your-miner.example.com`)
-- **API Token**: Your miner's API key (from `MINER_API_KEY` in `.env`)
+**🌐 https://huggingface.co/spaces/star145s/miner-registration**
 
-### Step 2: Install Bittensor
+### Step-by-Step Registration
+
+#### 1. Prepare Your API Information
+
+Ensure your miner is:
+- ✅ Running and accessible at a public URL
+- ✅ Responding to `/health` endpoint
+- ✅ Configured with a secure API key
+
+You'll need:
+- **API URL**: Your miner's public URL (e.g., `https://miner.example.com`)
+- **API Key**: Your `API_KEY` from `.env`
+- **Bittensor Wallet**: Your coldkey wallet for signing
+
+#### 2. Install Bittensor
 
 ```bash
 python3 -m pip install --upgrade bittensor
 ```
 
-### Step 3: Encrypt Your Credentials
+#### 3. Generate Signed Credentials
 
-Use the `encrypt.py` script to cryptographically sign your API information with your Bittensor wallet:
+Use the `encrypt.py` script to cryptographically sign your credentials:
 
 ```bash
 python encrypt.py \
   --name <your-wallet-name> \
-  --api-url <your-miner-api-url> \
-  --token <your-miner-api-key> \
+  --api-url <your-miner-public-url> \
+  --token <your-api-key> \
   --output signed_credentials.txt
 ```
 
@@ -194,26 +338,77 @@ python encrypt.py \
 python encrypt.py \
   --name my_miner_wallet \
   --api-url https://miner.example.com \
-  --token your-secure-miner-key \
+  --token AbCdEf123456SecureKey \
   --output signed_credentials.txt
 ```
 
-You'll be prompted for your wallet password. The script will generate a signed file containing:
-- Your API URL and token
-- Your wallet's SS58 address (signer)
-- Cryptographic signature
-- Timestamp
+**What happens:**
+- Prompts for your wallet password
+- Creates cryptographic signature using your coldkey
+- Generates `signed_credentials.txt` with:
+  - Your API URL and token
+  - SS58 wallet address
+  - Cryptographic signature
+  - Timestamp
 
-### Step 4: Submit to Miner Registration System
+#### 4. Submit Registration
 
-Submit the contents of `signed_credentials.txt` to the miner registration system. The orchestrator will:
-1. Verify the signature matches your wallet address
-2. Test connectivity to your API endpoint
-3. Register your miner if validation passes
+Once you have your `signed_credentials.txt` file:
+
+1. **Go to the registration portal**: https://huggingface.co/spaces/star145s/miner-registration
+2. **Open** `signed_credentials.txt` and copy its contents
+3. **Paste** the contents into the registration form
+4. **Submit** for validation
+
+**The orchestrator will:**
+- ✅ Verify signature against your wallet address
+- ✅ Test connectivity to your API
+- ✅ Validate `/health` and `/capabilities` endpoints
+- ✅ Register your miner if all checks pass
+
+#### 5. Register on Subnet 80 (Required)
+
+**Important**: In addition to registering your miner API, you must also register your wallet on **Bittensor Subnet 80** to participate in mining.
+
+Follow the Bittensor documentation to register your miner on the subnet using your coldkey wallet. This is required for the network to recognize your miner and allocate rewards.
 
 ### Security Notes
 
-- ✅ **Secure**: Your credentials are cryptographically signed with your coldkey
-- ✅ **Verifiable**: The orchestrator can verify the signature against your wallet address
-- ✅ **Tamper-proof**: Any modification to the signed data will invalidate the signature
-- ⚠️ **Keep Safe**: Store your `signed_credentials.txt` securely - it contains your API token
+- ✅ **Cryptographically Secure**: Signed with your Bittensor coldkey
+- ✅ **Verifiable**: Orchestrator verifies signature authenticity
+- ✅ **Tamper-Proof**: Any modification invalidates the signature
+- ⚠️ **Keep Private**: Store `signed_credentials.txt` securely (contains your API key)
+- 🔄 **Rotate Keys**: Regularly update your API key for security
+
+
+---
+
+## 🎉 Quick Start Summary
+
+```bash
+# 1. Install
+pip install -r requirements-minimal.txt
+
+# 2. Configure
+cp .env.example .env
+# Edit .env: Set API_KEY, LLM_PROVIDER, OPENAI_API_KEY
+
+# 3. Run
+python run.py
+
+# 4. Test
+python examples/gradio_test_ui.py
+# Open http://localhost:7860
+
+# 5. Register your miner API
+python encrypt.py --name wallet --api-url https://your-miner.com --token your-api-key
+# Submit signed_credentials.txt to: https://huggingface.co/spaces/star145s/miner-registration
+
+# 6. Register on Subnet 80 (Required for mining)
+# Follow Bittensor docs to register your wallet on subnet 80
+```
+---
+
+## 📄 License
+
+See LICENSE file for details.

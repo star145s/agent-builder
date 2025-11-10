@@ -33,7 +33,7 @@ async def verify_api_key(api_key: str = Security(api_key_header)) -> str:
             headers={"WWW-Authenticate": "ApiKey"},
         )
     
-    if api_key != settings.miner_api_key:
+    if api_key != settings.get_api_key:
         logger.warning(f"Invalid API key attempted: {api_key[:10]}...")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -54,4 +54,4 @@ async def optional_api_key(api_key: str = Security(api_key_header)) -> bool:
     if api_key is None:
         return False
     
-    return api_key == settings.miner_api_key
+    return api_key == settings.get_api_key

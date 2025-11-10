@@ -12,6 +12,7 @@ an OpenAI-compatible interface for both.
 import logging
 from typing import Optional, List, Dict, Any
 from openai import AsyncOpenAI, OpenAIError
+import httpx
 from src.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -23,23 +24,40 @@ class LLMClient:
     def __init__(self):
         """Initialize the LLM client based on configured provider."""
         self.provider = settings.llm_provider.lower()
-        self.model = settings.model_name
+        self.model = settings.get_model_name
+        
+        # Configure HTTP client with connection pooling for better performance
+        http_client = httpx.AsyncClient(
+            limits=httpx.Limits(
+                max_keepalive_connections=settings.connection_pool_keepalive,
+                max_connections=settings.connection_pool_max,
+                keepalive_expiry=float(settings.connection_pool_keepalive_expiry)
+            ),
+            timeout=httpx.Timeout(
+                connect=10.0,   # 10s to establish connection
+                read=float(settings.request_timeout),
+                write=10.0,     # 10s to write request
+                pool=5.0        # 5s to get connection from pool
+            )
+        )
         
         if self.provider == "openai":
-            # Standard OpenAI configuration
+            # Standard OpenAI configuration with connection pooling
             self.client = AsyncOpenAI(
                 api_key=settings.openai_api_key,
-                base_url=settings.openai_base_url
+                base_url=settings.openai_base_url,
+                http_client=http_client
             )
-            logger.info(f"Initialized OpenAI client with model: {self.model}")
+            logger.info(f"Initialized OpenAI client with model: {self.model} (with connection pooling)")
         
         elif self.provider == "vllm":
-            # vLLM uses OpenAI-compatible API
+            # vLLM uses OpenAI-compatible API with connection pooling
             self.client = AsyncOpenAI(
                 api_key=settings.vllm_api_key,
-                base_url=settings.vllm_api_base
+                base_url=settings.get_vllm_base_url,
+                http_client=http_client
             )
-            logger.info(f"Initialized vLLM client at {settings.vllm_api_base} with model: {self.model}")
+            logger.info(f"Initialized vLLM client at {settings.get_vllm_base_url} with model: {self.model} (with connection pooling)")
         
         else:
             raise ValueError(f"Unsupported LLM provider: {self.provider}. Use 'openai' or 'vllm'.")
@@ -276,8 +294,10 @@ class LLMClient:
 # Global client instance
 llm_client = LLMClient()
 
-# Keep backward compatibility
-openai_client = llm_client
+
+def get_llm_client() -> LLMClient:
+    """Get the global LLM client instance."""
+    return llm_client
 
 
 # Convenience function for easier imports
