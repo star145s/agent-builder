@@ -355,7 +355,7 @@ python encrypt.py \
 
 Once you have your `signed_credentials.txt` file:
 
-1. **Go to the registration portal**: https://huggingface.co/spaces/star145s/miner-registration
+1. **Go to the registration portal**: https://huggingface.co/spaces/agent-builder/miner-registration-system
 2. **Open** `signed_credentials.txt` and copy its contents
 3. **Paste** the contents into the registration form
 4. **Submit** for validation
@@ -371,15 +371,6 @@ Once you have your `signed_credentials.txt` file:
 **Important**: In addition to registering your miner API, you must also register your wallet on **Bittensor Subnet 80** to participate in mining.
 
 Follow the Bittensor documentation to register your miner on the subnet using your coldkey wallet. This is required for the network to recognize your miner and allocate rewards.
-
-### Security Notes
-
-- ✅ **Cryptographically Secure**: Signed with your Bittensor coldkey
-- ✅ **Verifiable**: Orchestrator verifies signature authenticity
-- ✅ **Tamper-Proof**: Any modification invalidates the signature
-- ⚠️ **Keep Private**: Store `signed_credentials.txt` securely (contains your API key)
-- 🔄 **Rotate Keys**: Regularly update your API key for security
-
 
 ---
 
