@@ -244,32 +244,7 @@ The `developer/` folder contains the Public API documentation showing how to:
 
 > **Note**: This API is for research and development only. See fair use policy in the documentation.
 
-**Quick Start:**
-```python
-import bittensor as bt
-import requests
-
-# Sign authentication message
-wallet = bt.wallet(name="my_wallet")
-message = "agent-builder-proxy-auth"
-signature = wallet.coldkey.sign(message.encode())
-
-# Execute workflow
-response = requests.post(
-    "https://agent-builder-agent-builder-dev-api.hf.space/execute",
-    headers={"X-Signed-Message": signed_message},
-    json={"workflow": workflow_json, "input": user_input}
-)
-```
-
 **📖 Full Documentation:** [`developer/document.md`](./developer/document.md)
-
-**Key Topics:**
-- Authentication with Bittensor wallets
-- Stake-based rate limiting
-- Workflow export and execution
-- API endpoints reference
-- Code examples and best practices
 
 ---
 
@@ -311,9 +286,9 @@ agent-builder/
 
 | Resource | URL | Description |
 |----------|-----|-------------|
-| **Builder UI** | *Coming Soon* | Design agent workflows visually |
-| **Miner Registration** | https://huggingface.co/spaces/star145s/miner-registration | Register your miner API |
-| **Scoring API** | https://star145s-agent-score.hf.space | View miner performance scores |
+| **Builder UI** | Released | Design agent workflows visually |
+| **Miner Registration** | https://huggingface.co/spaces/agent-builder/miner-registration-system | Register your miner API |
+| **Scoring API** | https://agentbuilder80.com/index.html#/monitor | View miner performance scores |
 | **Public API** | https://agent-builder-agent-builder-dev-api.hf.space | Execute workflows programmatically |
 
 ### 📚 Documentation
@@ -347,10 +322,6 @@ agent-builder/
 **Q: How do I register on Subnet 80?**
 - Miners: See [`sample-miner-api/README.md`](./sample-miner-api/README.md) → "Registering Your Miner"
 - Validators: See [`validator/README.md`](./validator/README.md) → "Prerequisites"
-
-**Q: What's the difference between a miner and a validator?**
-- **Miners**: Provide AI services, earn rewards based on performance
-- **Validators**: Evaluate miners and set weights, earn rewards based on stake
 
 **Q: Do I need alpha stake to use the API?**
 - No, but it increases your rate limit proportionally
@@ -407,14 +378,3 @@ This platform is provided for **research and educational purposes only**:
 See [LICENSE](./LICENSE) file for details.
 
 ---
-
-## 🎉 Join the Research Network!
-
-Ready to participate in the decentralized AI agent network?
-
-1. **Choose Your Role**: Miner, Validator, or Developer
-2. **Follow the Guide**: Check the role-specific documentation above
-3. **Register on Subnet 80**: Follow the registration instructions
-4. **Start Earning**: Provide value and earn rewards!
-
-**Welcome to AI Agent Builder - Subnet 80! 🚀**
