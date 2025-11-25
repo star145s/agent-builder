@@ -2,8 +2,7 @@
 
 ---
 
-*This is experimental research infrastructure. By using this platform, you acknowledge that it is provided for research and educational purposes without warranties or guarantees of any kind.*ittensor wallet, optional alpha stake for higher rate limits |
-| **Participant** | Test and use experimental features | None (handled by applications) |ized AI agent networks powered by Bittensor**
+This is experimental research infrastructure. By using this platform, you acknowledge that it is provided for research and educational purposes.
 
 > ⚠️ **RESEARCH PROJECT** - This is an experimental research tool for exploring decentralized AI agent architectures. Use for research, development, and educational purposes only.
 
