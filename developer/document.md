@@ -1,6 +1,6 @@
 # AI Agent Builder - Public API Developer Guide
 
-**Last Updated:** November 24, 2025  
+**Last Updated:** November 29, 2025  
 **API Base URL:** `https://agent-builder-agent-builder-dev-api.hf.space`
 
 ---
@@ -12,7 +12,7 @@
 3. [Authentication](#authentication)
 4. [Rate Limiting](#rate-limiting)
 5. [API Endpoints](#api-endpoints)
-6. [Workflow Export & Execution](#workflow-export--execution)
+6. [Workflow Export & Execution](#workflow-export-execution)
 7. [Code Examples](#code-examples)
 
 ---
@@ -112,6 +112,30 @@ print(f"Signed Message: {auth_data['signed_message']}")
 
 The API uses a **proportional stake-based rate limiting system** to fairly allocate computational resources among users.
 
+### Rate Limit Types
+
+1. **RPM (Requests Per Minute)**: Maximum requests allowed in a 60-second window
+2. **Concurrent Limit**: Maximum simultaneous requests
+
+### Dynamic Concurrent Limit
+
+The concurrent limit is **dynamic** and adjusts based on your remaining RPM:
+
+```python
+dynamic_concurrent = min(remaining_rpm, max(1, max_rpm / 2))
+```
+
+**Example Scenarios:**
+
+| Max RPM | Used RPM | Remaining RPM | Static Concurrent | Dynamic Concurrent | Result |
+|---------|----------|---------------|-------------------|--------------------|--------|
+| 48 | 0 | 48 | 24 | min(48, 24) | **24** |
+| 48 | 20 | 28 | 24 | min(28, 24) | **24** |
+| 48 | 40 | 8 | 24 | min(8, 24) | **8** |
+| 48 | 46 | 2 | 24 | min(2, 24) | **2** |
+
+This prevents users from consuming all their RPM in concurrent bursts.
+
 ### Important Disclaimers
 
 ⚠️ **CRITICAL - PLEASE READ:**
@@ -138,7 +162,7 @@ def check_rate_limit(signed_message: str, coldkey: str) -> dict:
         coldkey: Your Bittensor coldkey address
     
     Returns:
-        Dictionary with RPM allocation and stake info
+        Dictionary with RPM/concurrent allocation and stake info
     """
     headers = {
         "X-Signed-Message": signed_message,
@@ -155,8 +179,10 @@ def check_rate_limit(signed_message: str, coldkey: str) -> dict:
 
 # Usage
 rate_info = check_rate_limit(auth_data["signed_message"], auth_data["coldkey"])
-print(f"Your RPM Limit: {rate_info['rate_limit']['rpm_limit']}")
-print(f"Requests Remaining: {rate_info['rate_limit']['requests_remaining']}")
+print(f"Your RPM Limit: {rate_info['rate_limit']['rpm']['limit']}")
+print(f"RPM Remaining: {rate_info['rate_limit']['rpm']['remaining']}")
+print(f"Concurrent Limit: {rate_info['rate_limit']['concurrent']['limit']}")
+print(f"Dynamic Concurrent: {rate_info['rate_limit']['concurrent']['dynamic_limit']}")
 print(f"Your Stake: {rate_info['stake_amount_tao']} Alpha")
 ```
 
@@ -361,18 +387,48 @@ X-Coldkey: 5GrwvaEF...
 {
   "coldkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
   "is_miner": false,
+  "status": "active",
   "stake_amount_tao": 300,
   "rate_limit": {
-    "rpm_limit": 90,
-    "requests_used_last_minute": 0,
-    "requests_remaining": 90
+    "rpm": {
+      "limit": 90,
+      "used": 10,
+      "remaining": 80,
+      "window_seconds": 60
+    },
+    "concurrent": {
+      "limit": 45,
+      "dynamic_limit": 45,
+      "current": 2,
+      "remaining": 43,
+      "formula": "min(remaining_rpm, max(1, max_rpm/2))"
+    }
+  },
+  "inference_power": {
+    "rpm_percentage": 15.0,
+    "concurrent_percentage": 15.0,
+    "average_percentage": 15.0,
+    "description": "You have 15.0% of RPM capacity and 15.0% of concurrent capacity"
   },
   "rate_limiting_info": {
-    "type": "stake-based",
-    "description": "Your RPM is calculated based on your proportional stake"
+    "type": "pure_proportional",
+    "description": "Your limits are calculated every 10s based on your stake proportion",
+    "formula": "user_rpm = 600 × (user_stake / total_active_stake)",
+    "concurrent_formula": "dynamic_concurrent = min(remaining_rpm, max(1, max_rpm/2))"
   }
 }
 ```
+
+**Response Fields Explained:**
+
+- `rate_limit.rpm.limit` - Your maximum requests per minute
+- `rate_limit.rpm.used` - Requests used in current minute window
+- `rate_limit.rpm.remaining` - Requests still available this minute
+- `rate_limit.concurrent.limit` - Static max concurrent (max_rpm / 2)
+- `rate_limit.concurrent.dynamic_limit` - **Actual limit** based on remaining RPM
+- `rate_limit.concurrent.current` - Currently active concurrent requests
+- `rate_limit.concurrent.remaining` - Concurrent slots available
+  "inference_power" - Your percentage of total system capacity
 
 ## Workflow Export & Execution
 
@@ -587,5 +643,5 @@ for end_node in result["end_node_outputs"]:
         print("AI Response:", end_node["output"]["immediate_response"])
 ```
 
-**Version:** 2.0.0  
-**Last Updated:** November 24, 2025
+**Version:** 2.1.0  
+**Last Updated:** November 29, 2025
